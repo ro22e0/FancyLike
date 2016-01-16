@@ -1,0 +1,27 @@
+
+/* Class = "UITabBarItem"; title = "Home"; ObjectID = "ChI-4E-2H6"; */
+"ChI-4E-2H6.title" = "Accueil";
+
+/* Class = "UILabel"; text = "Description"; ObjectID = "LyB-tH-NaH"; */
+"LyB-tH-NaH.text" = "Description";
+
+/* Class = "UIButton"; normalTitle = "Like"; ObjectID = "NBT-cU-Vkb"; */
+"NBT-cU-Vkb.normalTitle" = "J'aime";
+
+/* Class = "UILabel"; text = "Title"; ObjectID = "WeP-Lq-NXf"; */
+"WeP-Lq-NXf.text" = "Title";
+
+/* Class = "UITabBarItem"; title = "Settings"; ObjectID = "g9i-Da-fDP"; */
+"g9i-Da-fDP.title" = "Réglages";
+
+/* Class = "UINavigationItem"; title = "Fancy-Like"; ObjectID = "hvW-Pl-mp6"; */
+"hvW-Pl-mp6.title" = "Fancy-Like";
+
+/* Class = "UIButton"; normalTitle = "Reload"; ObjectID = "mHP-15-Oqg"; */
+"mHP-15-Oqg.normalTitle" = "Recharger";
+
+/* Class = "UILabel"; text = "Just to show another view"; ObjectID = "qz3-VE-d5c"; */
+"qz3-VE-d5c.text" = "Juste pour afficher une autre vue";
+
+/* Class = "UILabel"; text = "42 like"; ObjectID = "raJ-cT-snU"; */
+"raJ-cT-snU.text" = "42 like";
