@@ -17,15 +17,15 @@ class PublicationTableViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Load the sample publications data
-        initializePublications()
-        
         // Set the reflesh control action
         refreshControl?.addTarget(self, action: "reloadPublications:", forControlEvents: .ValueChanged)
         
         // Set ViewCell AutoLayout
         self.tableView.estimatedRowHeight = 600
         self.tableView.rowHeight = UITableViewAutomaticDimension
+        
+        // Load the sample publications data
+        initializePublications()
         
         // Uncomment the following line to preserve selection between presentations
         // self.clearsSelectionOnViewWillAppear = false
@@ -63,10 +63,10 @@ class PublicationTableViewController: UITableViewController {
     func initializePublications() {
         // Show status bar loading icon
         UIApplication.sharedApplication().networkActivityIndicatorVisible = true
-        
+
         self.checkInternet()
+        self.loadPublications()
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-            self.loadPublications()
             self.loadPublicationsImages()
         }
     }
