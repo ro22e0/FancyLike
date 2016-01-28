@@ -1,9 +1,9 @@
 //
 //  PublicationTableViewController.swift
-//  TestAppTurbo
+//  FancyLike
 //
 //  Created by Ronaël Bajazet on 09/01/2016.
-//  Copyright © 2016 AppTurbo. All rights reserved.
+//  Copyright © 2016 Ro22e0. All rights reserved.
 //
 
 import UIKit
@@ -12,13 +12,14 @@ class PublicationTableViewController: UITableViewController {
     
     // MARK: - Properties
     
-    var publications = [Publication]()
+    let downloader = MyDownloader(configuration: .defaultSessionConfiguration())
+    lazy var publications = [Publication]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         // Set the reflesh control action
-        refreshControl?.addTarget(self, action: "reloadPublications:", forControlEvents: .ValueChanged)
+        refreshControl?.addTarget(self, action: "doRefresh:", forControlEvents: .ValueChanged)
         
         // Set ViewCell AutoLayout
         self.tableView.estimatedRowHeight = 600
@@ -61,14 +62,8 @@ class PublicationTableViewController: UITableViewController {
     }
     
     func initializePublications() {
-        // Show status bar loading icon
-        UIApplication.sharedApplication().networkActivityIndicatorVisible = true
-
         self.checkInternet()
         self.loadPublications()
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-            self.loadPublicationsImages()
-        }
     }
     
     // Load the sample publication data
@@ -87,6 +82,7 @@ class PublicationTableViewController: UITableViewController {
                         }
                         if let pub = Publication(imageUrl: url, title: title, description: description!) {
                             publications += [pub]
+                          //  self.tableView.reloadData()
                         }
                     }
                 }
@@ -96,25 +92,32 @@ class PublicationTableViewController: UITableViewController {
         }
     }
     
-    // Load images in background
-    func loadPublicationsImages() {
-        for pub in self.publications {
-            pub.loadImage(self)
+    func loadImage(pub: Publication) {
+        if pub.Task == nil {
+            pub.Task = self.downloader.download(pub.ImageUrl) {
+                (weak url) -> () in
+                pub.Task = nil
+                if url == nil {
+                    return
+                }
+                let data = NSData(contentsOfURL: url)!
+                let im = UIImage(data:data)
+                pub.Image = im
+                dispatch_async(dispatch_get_main_queue()) {
+                    self.tableView.reloadData()
+                }
+            }
+        } else {
+            pub.Task.resume()
         }
     }
     
     // Display/Hide reload image button
-    func checkErrorOnLoadingImage(cell: PublicationTableViewCell, indexPath: NSIndexPath) {
-        if cell.imagePubView.image == nil {
-            cell.reloadButton.tag = indexPath.row
-            cell.reloadButton.enabled = true
-            cell.reloadButton.hidden = false;
-            cell.reloadButton.addTarget(self, action: "reloadImage:", forControlEvents: .TouchUpInside)
-        }
-        else {
-            cell.reloadButton.enabled = false
-            cell.reloadButton.hidden = true
-        }
+    func errorOnLoadingImage(cell: PublicationTableViewCell, indexPath: NSIndexPath) {
+        cell.reloadButton.tag = indexPath.row
+        cell.reloadButton.enabled = true
+        cell.reloadButton.hidden = false;
+        cell.reloadButton.addTarget(self, action: "reloadImage:", forControlEvents: .TouchUpInside)
     }
     
     override func didReceiveMemoryWarning() {
@@ -143,6 +146,32 @@ class PublicationTableViewController: UITableViewController {
         
         // Configure the cell...
         cell.separatorInset = UIEdgeInsetsMake(0, cell.bounds.size.width, 0, 0);
+        
+        if let im = publication.Image {
+            cell.imagePubView.image = im
+        } else {
+            if publication.Task == nil {
+                cell.imageView!.image = nil
+                publication.Task = self.downloader.download(publication.ImageUrl) {
+//                    [weak self]
+                    url in
+//                    publication.Task = nil
+                    if url == nil {
+                        self.errorOnLoadingImage(cell, indexPath: indexPath)
+                        return
+                    }
+                    let data = NSData(contentsOfURL: url)!
+                    let im = UIImage(data:data)
+                    publication.Image = im
+                    cell.reloadButton.enabled = false
+                    cell.reloadButton.hidden = true
+                    dispatch_async(dispatch_get_main_queue()) {
+                        self.tableView.reloadRowsAtIndexPaths([indexPath], withRowAnimation: .None)
+                    }
+                }
+            }
+        }
+        
         cell.imagePubView.image = publication.Image
         cell.titlePubLabel.text = publication.Title
         cell.descriptionPubLabel.text = publication.Description
@@ -151,17 +180,33 @@ class PublicationTableViewController: UITableViewController {
             cell.likeLabel.text = String(publication.Like) + NSLocalizedString(" like", comment: "likelbl")
         }
         
-        cell.descriptionPubLabel.numberOfLines = 0;
-        
         // Adding action like to the Like button
         cell.likeButton.tag = indexPath.row
         cell.likeButton.addTarget(self, action: "addLike:", forControlEvents: .TouchUpInside)
         
         // Check image loading error
-        checkErrorOnLoadingImage(cell, indexPath: indexPath)
-        
+//        checkErrorOnLoadingImage(cell, indexPath: indexPath)
+
         return cell
     }
+    
+    override func tableView(tableView: UITableView, didEndDisplayingCell cell: UITableViewCell, forRowAtIndexPath indexPath: NSIndexPath) {
+        let publication = self.publications[indexPath.row]
+        if let task = publication.Task {
+            if task.state == .Running {
+                task.cancel()
+                publication.Task = nil
+            }
+        }
+    }
+    
+    //    override func tableView(tableView: UITableView, estimatedHeightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
+    //        let cell = tableView.dequeueReusableCellWithIdentifier("PublicationTableViewCell",
+    //            forIndexPath: indexPath) as! PublicationTableViewCell
+    //        let v = cell.contentView
+    //        let size = v.systemLayoutSizeFittingSize(UILayoutFittingCompressedSize)
+    //        return size.height
+    //    }
     
     /*
     // Override to support conditional editing of the table view.
@@ -215,32 +260,17 @@ class PublicationTableViewController: UITableViewController {
         self.tableView.reloadData()
     }
     
-    func reloadPublications(sender: AnyObject) {
-        // Show status bar loading icon
-        UIApplication.sharedApplication().networkActivityIndicatorVisible = true
-        
+    func doRefresh(sender: AnyObject) {
         self.checkInternet()
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-            self.loadPublicationsImages()
-            
-            // update some UI
-            dispatch_async(dispatch_get_main_queue()) {
-                self.refreshControl?.endRefreshing()
-            }
+        for pub in self.publications {
+            self.loadImage(pub)
         }
+            self.refreshControl?.endRefreshing()
     }
     
     func reloadImage(sender: UIButton) {
-        // Show status bar loading icon
-        UIApplication.sharedApplication().networkActivityIndicatorVisible = true
-        
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-            self.publications[sender.tag].loadImage(self)
-            
-            // update some UI
-            dispatch_async(dispatch_get_main_queue()) {
-                self.tableView.reloadData()
-            }
-        }
+        self.checkInternet()
+        let pub = self.publications[sender.tag]
+        self.loadImage(pub)
     }
 }

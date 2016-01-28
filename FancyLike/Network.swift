@@ -1,9 +1,9 @@
 //
 //  Network.swift
-//  TestAppTurbo
+//  FancyLike
 //
 //  Created by Ronaël Bajazet on 09/01/2016.
-//  Copyright © 2016 AppTurbo. All rights reserved.
+//  Copyright © 2016 Ro22e0. All rights reserved.
 //
 
 import Foundation
